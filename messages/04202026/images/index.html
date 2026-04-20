@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Gallery</title>
+  <style>
+    :root{
+      --bg:#0b0d10;
+      --panel:#12161c;
+      --panel-2:#171c23;
+      --text:#edf2f7;
+      --muted:#9aa6b2;
+      --line:rgba(255,255,255,.08);
+      --line-strong:rgba(255,255,255,.16);
+      --shadow:0 18px 50px rgba(0,0,0,.35);
+      --radius:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Helvetica,Arial,sans-serif;
+      background:linear-gradient(180deg,#0a0c0f,#0f1318 180px,#0b0d10);
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      text-rendering:optimizeLegibility;
+    }
+
+    .shell{
+      max-width:1600px;
+      margin:0 auto;
+      padding:24px 20px 56px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:end;
+      justify-content:space-between;
+      gap:20px;
+      margin:0 0 22px;
+    }
+
+    .title{
+      font-size:clamp(22px,3vw,34px);
+      line-height:1.05;
+      font-weight:700;
+      letter-spacing:-0.02em;
+      margin:0;
+    }
+
+    .sub{
+      margin-top:8px;
+      color:var(--muted);
+      font-size:14px;
+    }
+
+    .gallery{
+      column-width:320px;
+      column-gap:18px;
+    }
+
+    .card{
+      appearance:none;
+      display:block;
+      width:100%;
+      margin:0 0 18px;
+      padding:0;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      overflow:hidden;
+      background:var(--panel);
+      color:inherit;
+      cursor:pointer;
+      text-align:left;
+      box-shadow:var(--shadow);
+      break-inside:avoid;
+      transition:transform .18s ease,border-color .18s ease,background .18s ease;
+    }
+
+    .card:hover,
+    .card:focus-visible{
+      transform:translateY(-2px);
+      border-color:var(--line-strong);
+      background:var(--panel-2);
+      outline:none;
+    }
+
+    .card img{
+      display:block;
+      width:100%;
+      height:auto;
+      background:#0a0a0a;
+    }
+
+    .meta{
+      padding:12px 14px 14px;
+    }
+
+    .name{
+      font-size:13px;
+      font-weight:600;
+      line-height:1.35;
+      word-break:break-word;
+      color:#f7fafc;
+    }
+
+    .path{
+      margin-top:6px;
+      font-size:12px;
+      line-height:1.35;
+      word-break:break-word;
+      color:var(--muted);
+    }
+
+    .empty{
+      margin-top:28px;
+      padding:28px 24px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      background:var(--panel);
+      color:var(--muted);
+      font-size:15px;
+    }
+
+    .overlay{
+      position:fixed;
+      inset:0;
+      display:none;
+      z-index:9999;
+      background:rgba(4,6,9,.82);
+      backdrop-filter:blur(14px) saturate(120%);
+    }
+
+    .overlay.open{
+      display:block;
+    }
+
+    .viewer{
+      position:absolute;
+      inset:0;
+      display:grid;
+      grid-template-columns:minmax(0,1fr);
+      grid-template-rows:auto 1fr auto;
+      gap:16px;
+      padding:18px;
+    }
+
+    .viewer-top{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+    }
+
+    .viewer-counter{
+      font-size:13px;
+      color:var(--muted);
+      background:rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:8px 12px;
+    }
+
+    .icon-btn{
+      appearance:none;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.06);
+      color:#fff;
+      border-radius:999px;
+      cursor:pointer;
+      width:46px;
+      height:46px;
+      font-size:24px;
+      line-height:1;
+      display:grid;
+      place-items:center;
+      transition:background .18s ease,border-color .18s ease,transform .18s ease;
+    }
+
+    .icon-btn:hover,
+    .icon-btn:focus-visible{
+      background:rgba(255,255,255,.12);
+      border-color:var(--line-strong);
+      transform:translateY(-1px);
+      outline:none;
+    }
+
+    .viewer-main{
+      min-height:0;
+      display:grid;
+      grid-template-columns:72px minmax(0,1fr) 72px;
+      align-items:center;
+      gap:18px;
+    }
+
+    .nav{
+      width:56px;
+      height:56px;
+      margin:0 auto;
+      font-size:32px;
+    }
+
+    .stage{
+      min-width:0;
+      min-height:0;
+      display:grid;
+      grid-template-rows:minmax(0,1fr) auto;
+      gap:14px;
+      align-items:center;
+      justify-items:center;
+    }
+
+    .stage img{
+      display:block;
+      max-width:min(92vw,1400px);
+      max-height:66vh;
+      width:auto;
+      height:auto;
+      border-radius:16px;
+      border:1px solid var(--line);
+      box-shadow:var(--shadow);
+      background:#07090b;
+    }
+
+    .caption{
+      width:min(1000px,100%);
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(18,22,28,.86);
+      padding:16px 18px 18px;
+      box-shadow:var(--shadow);
+    }
+
+    .caption-title{
+      margin:0 0 8px;
+      font-size:14px;
+      font-weight:700;
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    .caption-path{
+      margin:0 0 12px;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.35;
+      word-break:break-word;
+    }
+
+    .caption-text{
+      margin:0;
+      white-space:pre-wrap;
+      font:inherit;
+      font-size:14px;
+      line-height:1.6;
+      color:#dbe4ee;
+      word-break:break-word;
+    }
+
+    @media (max-width: 900px){
+      .viewer{padding:14px}
+      .viewer-main{
+        grid-template-columns:1fr;
+        grid-template-rows:auto minmax(0,1fr) auto;
+      }
+      .nav{
+        width:52px;
+        height:52px;
+      }
+      .viewer-nav-row{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:16px;
+      }
+      .viewer-main > .nav{
+        display:none;
+      }
+      .viewer-nav-row .nav{
+        display:grid;
+      }
+    }
+
+    @media (min-width: 901px){
+      .viewer-nav-row{display:none}
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <h1 class="title">Gallery</h1>
+        <div class="sub" id="itemCount"></div>
+      </div>
+    </header>
+
+    <section class="gallery" id="gallery">
+      <button class="card"
+              type="button"
+              data-src="./signal-2026-04-17-132910_002.jpeg"
+              data-title="signal-2026-04-17-132910_002.jpeg"
+              data-path="signal-2026-04-17-132910_002.jpeg"
+              data-caption="signal-2026-04-17-132910_002.jpeg">
+        <img src="./signal-2026-04-17-132910_002.jpeg" alt="signal-2026-04-17-132910_002.jpeg" loading="lazy">
+        <div class="meta">
+          <div class="name">signal-2026-04-17-132910_002.jpeg</div>
+          <div class="path">signal-2026-04-17-132910_002.jpeg</div>
+        </div>
+      </button>
+      <button class="card"
+              type="button"
+              data-src="./signal-2026-04-17-132941_002.jpeg"
+              data-title="signal-2026-04-17-132941_002.jpeg"
+              data-path="signal-2026-04-17-132941_002.jpeg"
+              data-caption="signal-2026-04-17-132941_002.jpeg">
+        <img src="./signal-2026-04-17-132941_002.jpeg" alt="signal-2026-04-17-132941_002.jpeg" loading="lazy">
+        <div class="meta">
+          <div class="name">signal-2026-04-17-132941_002.jpeg</div>
+          <div class="path">signal-2026-04-17-132941_002.jpeg</div>
+        </div>
+      </button>
+      <button class="card"
+              type="button"
+              data-src="./signal-2026-04-17-133110_002.jpeg"
+              data-title="signal-2026-04-17-133110_002.jpeg"
+              data-path="signal-2026-04-17-133110_002.jpeg"
+              data-caption="signal-2026-04-17-133110_002.jpeg">
+        <img src="./signal-2026-04-17-133110_002.jpeg" alt="signal-2026-04-17-133110_002.jpeg" loading="lazy">
+        <div class="meta">
+          <div class="name">signal-2026-04-17-133110_002.jpeg</div>
+          <div class="path">signal-2026-04-17-133110_002.jpeg</div>
+        </div>
+      </button>
+      <button class="card"
+              type="button"
+              data-src="./signal-2026-04-17-133110_003.jpeg"
+              data-title="signal-2026-04-17-133110_003.jpeg"
+              data-path="signal-2026-04-17-133110_003.jpeg"
+              data-caption="signal-2026-04-17-133110_003.jpeg">
+        <img src="./signal-2026-04-17-133110_003.jpeg" alt="signal-2026-04-17-133110_003.jpeg" loading="lazy">
+        <div class="meta">
+          <div class="name">signal-2026-04-17-133110_003.jpeg</div>
+          <div class="path">signal-2026-04-17-133110_003.jpeg</div>
+        </div>
+      </button>
+      <button class="card"
+              type="button"
+              data-src="./signal-2026-04-17-133805.png"
+              data-title="signal-2026-04-17-133805.png"
+              data-path="signal-2026-04-17-133805.png"
+              data-caption="signal-2026-04-17-133805.png">
+        <img src="./signal-2026-04-17-133805.png" alt="signal-2026-04-17-133805.png" loading="lazy">
+        <div class="meta">
+          <div class="name">signal-2026-04-17-133805.png</div>
+          <div class="path">signal-2026-04-17-133805.png</div>
+        </div>
+      </button>
+      <button class="card"
+              type="button"
+              data-src="./signal-2026-04-17-133823.png"
+              data-title="signal-2026-04-17-133823.png"
+              data-path="signal-2026-04-17-133823.png"
+              data-caption="signal-2026-04-17-133823.png">
+        <img src="./signal-2026-04-17-133823.png" alt="signal-2026-04-17-133823.png" loading="lazy">
+        <div class="meta">
+          <div class="name">signal-2026-04-17-133823.png</div>
+          <div class="path">signal-2026-04-17-133823.png</div>
+        </div>
+      </button>
+    </section>
+  </main>
+
+  <div class="overlay" id="overlay" aria-hidden="true">
+    <div class="viewer">
+      <div class="viewer-top">
+        <div class="viewer-counter" id="viewerCounter">0 / 0</div>
+        <button class="icon-btn" id="closeBtn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div class="viewer-main">
+        <button class="icon-btn nav" id="prevBtn" type="button" aria-label="Previous">‹</button>
+
+        <div class="stage">
+          <img id="stageImage" alt="">
+          <section class="caption">
+            <h2 class="caption-title" id="captionTitle"></h2>
+            <p class="caption-path" id="captionPath"></p>
+            <pre class="caption-text" id="captionText"></pre>
+          </section>
+        </div>
+
+        <button class="icon-btn nav" id="nextBtn" type="button" aria-label="Next">›</button>
+      </div>
+
+      <div class="viewer-nav-row">
+        <button class="icon-btn nav" id="prevBtnMobile" type="button" aria-label="Previous">‹</button>
+        <button class="icon-btn nav" id="nextBtnMobile" type="button" aria-label="Next">›</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const cards = Array.from(document.querySelectorAll('.card[data-src]'));
+    const overlay = document.getElementById('overlay');
+    const stageImage = document.getElementById('stageImage');
+    const captionTitle = document.getElementById('captionTitle');
+    const captionPath = document.getElementById('captionPath');
+    const captionText = document.getElementById('captionText');
+    const viewerCounter = document.getElementById('viewerCounter');
+    const itemCount = document.getElementById('itemCount');
+
+    const closeBtn = document.getElementById('closeBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const prevBtnMobile = document.getElementById('prevBtnMobile');
+    const nextBtnMobile = document.getElementById('nextBtnMobile');
+
+    let currentIndex = 0;
+    let lastFocused = null;
+
+    itemCount.textContent = cards.length === 1 ? '1 item' : `${cards.length} items`;
+
+    function preload(index) {
+      if (!cards.length) return;
+      const safeIndex = (index + cards.length) % cards.length;
+      const src = cards[safeIndex].dataset.src;
+      const img = new Image();
+      img.src = src;
+    }
+
+    function render(index) {
+      if (!cards.length) return;
+      currentIndex = (index + cards.length) % cards.length;
+
+      const card = cards[currentIndex];
+      stageImage.src = card.dataset.src;
+      stageImage.alt = card.dataset.title || '';
+      captionTitle.textContent = card.dataset.title || '';
+      captionPath.textContent = card.dataset.path || '';
+      captionText.textContent = card.dataset.caption || '';
+      viewerCounter.textContent = `${currentIndex + 1} / ${cards.length}`;
+
+      preload(currentIndex - 1);
+      preload(currentIndex + 1);
+    }
+
+    function openViewer(index) {
+      lastFocused = document.activeElement;
+      overlay.classList.add('open');
+      overlay.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden';
+      render(index);
+      closeBtn.focus();
+    }
+
+    function closeViewer() {
+      overlay.classList.remove('open');
+      overlay.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      stageImage.removeAttribute('src');
+      if (lastFocused && typeof lastFocused.focus === 'function') {
+        lastFocused.focus();
+      }
+    }
+
+    function next() { render(currentIndex + 1); }
+    function prev() { render(currentIndex - 1); }
+
+    cards.forEach((card, index) => {
+      card.addEventListener('click', () => openViewer(index));
+      card.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openViewer(index);
+        }
+      });
+    });
+
+    closeBtn.addEventListener('click', closeViewer);
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+    prevBtnMobile.addEventListener('click', prev);
+    nextBtnMobile.addEventListener('click', next);
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) closeViewer();
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (!overlay.classList.contains('open')) return;
+      if (event.key === 'Escape') closeViewer();
+      if (event.key === 'ArrowLeft') prev();
+      if (event.key === 'ArrowRight') next();
+    });
+  </script>
+</body>
+</html>
