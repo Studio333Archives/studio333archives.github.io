@@ -212,3 +212,22 @@ body[data-palette="3"] .p-queue{
   .player{bottom:14px}
   .player-drawer{bottom:82px}
 }
+
+
+/* v0.7.6 — custom Redroom seek rail; no browser-default range chrome */
+.p-seek-wrap{position:relative;display:block;height:28px;min-width:80px;cursor:pointer;--seek-h:4px}
+.p-seek-rail{position:absolute;left:0;right:0;top:50%;height:var(--seek-h);transform:translateY(-50%);overflow:hidden;border-radius:999px;background:color-mix(in srgb,var(--fg) 18%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--fg) 7%,transparent);pointer-events:none}
+.p-seek-fill{display:block;width:var(--seek-progress,0%);height:100%;border-radius:inherit;background:var(--fg);transition:width .08s linear}
+.p-seek{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:1;appearance:none;-webkit-appearance:none;background:transparent;cursor:pointer;outline:0;touch-action:pan-y}
+.p-seek::-webkit-slider-runnable-track{height:var(--seek-h);background:transparent;border:0}
+.p-seek::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;margin-top:calc((var(--seek-h) - 12px)/2);border:2px solid var(--bg);border-radius:999px;background:var(--fg);box-shadow:0 0 0 1px color-mix(in srgb,var(--fg) 24%,transparent),0 2px 7px rgba(0,0,0,.14);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.p-seek::-moz-range-track{height:var(--seek-h);background:transparent;border:0}
+.p-seek::-moz-range-progress{height:var(--seek-h);border-radius:999px;background:transparent}
+.p-seek::-moz-range-thumb{width:10px;height:10px;border:2px solid var(--bg);border-radius:999px;background:var(--fg);box-shadow:0 0 0 1px color-mix(in srgb,var(--fg) 24%,transparent),0 2px 7px rgba(0,0,0,.14);transition:transform .18s var(--ease),box-shadow .18s var(--ease)}
+.p-seek-wrap:hover .p-seek-rail,.p-seek-wrap:focus-within .p-seek-rail{height:6px}
+.p-seek:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 45%,transparent)}
+.p-seek:focus-visible::-moz-range-thumb{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 45%,transparent)}
+.p-seek-wrap:hover .p-seek::-webkit-slider-thumb{transform:scale(1.12)}
+.p-seek-wrap:hover .p-seek::-moz-range-thumb{transform:scale(1.12)}
+.hero-counter{display:none!important}
+@media(max-width:760px){.p-seek-wrap{display:none!important}}
