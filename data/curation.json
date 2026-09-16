@@ -32,9 +32,13 @@
     "wp:2863"
   ],
   "featuredTrackIds": [],
-  "heroImageIds": [],
-  "sectionImageIds": {},
+  "heroImageIds": [
+    "wp:162"
+  ],
+  "sectionImageIds": {
+    "gallery": "wp:169"
+  },
   "sectionVideoIds": {},
   "overrides": {},
-  "updatedAt": "2026-09-16T21:48:13.965Z"
+  "updatedAt": "2026-09-16T23:24:52.961Z"
 }
