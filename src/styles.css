@@ -283,3 +283,97 @@ body[data-palette="3"] .p-queue{
   .p-info{min-width:0}
   .p-time{display:none!important}
 }
+
+
+/* v0.7.9 — chromatic player + editorial text navigation; homepage hero actions removed */
+:root{--player-bg:var(--accent);--player-fg:#111;--nav-link:var(--accent)}
+body[data-palette="2"]{--player-fg:#111}
+body[data-palette="3"]{--player-fg:#fff}
+
+.player{
+  background:var(--player-bg)!important;
+  color:var(--player-fg)!important;
+  border-color:color-mix(in srgb,var(--player-fg) 24%,transparent)!important;
+  box-shadow:0 18px 52px rgba(0,0,0,.20)!important;
+}
+.player .p-title strong,.player .p-title span,.player .p-time{color:var(--player-fg)!important}
+.player .p-title span{opacity:.66}
+.player .p-seek-rail{
+  background:color-mix(in srgb,var(--player-fg) 22%,transparent)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--player-fg) 10%,transparent)!important;
+}
+.player .p-seek-fill{background:var(--player-fg)!important}
+.player .p-seek::-webkit-slider-thumb{
+  border-color:var(--player-bg)!important;
+  background:var(--player-fg)!important;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--player-fg) 35%,transparent),0 2px 7px rgba(0,0,0,.16)!important;
+}
+.player .p-seek::-moz-range-thumb{
+  border-color:var(--player-bg)!important;
+  background:var(--player-fg)!important;
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--player-fg) 35%,transparent),0 2px 7px rgba(0,0,0,.16)!important;
+}
+.player .p-thumb{background:color-mix(in srgb,var(--player-fg) 10%,transparent)!important;color:var(--player-fg)!important}
+
+/* The desktop nav is typography, not another floating control panel. */
+@media(min-width:761px){
+  .fluid-pill{
+    height:auto;
+    padding:0;
+    gap:18px;
+    border:0;
+    border-radius:0;
+    background:transparent;
+    backdrop-filter:none;
+    box-shadow:none;
+  }
+  .fluid-pill button{
+    height:auto;
+    padding:5px 0;
+    border:0;
+    border-radius:0;
+    background:transparent!important;
+    color:var(--nav-link)!important;
+    font:600 12px/1 var(--mono);
+    letter-spacing:.075em;
+    text-shadow:0 1px 12px color-mix(in srgb,var(--bg) 45%,transparent);
+    transition:opacity .2s var(--ease),transform .2s var(--ease);
+  }
+  .fluid-pill button:hover,.fluid-pill button:focus-visible{
+    background:transparent!important;
+    color:var(--nav-link)!important;
+    opacity:.62;
+    transform:translateY(-1px);
+  }
+  .fluid-pill button[data-palette-control]{
+    width:22px;
+    height:22px;
+    padding:0;
+    display:grid;
+    place-items:center;
+    border-radius:999px;
+    background:var(--nav-link)!important;
+    color:var(--bg)!important;
+    font-size:0;
+    text-shadow:none;
+  }
+  .fluid-pill button[data-palette-control]::after{
+    content:"";
+    width:8px;
+    height:8px;
+    border-radius:999px;
+    background:var(--bg);
+  }
+}
+
+/* Keep mobile navigation glassy for legibility, but make its labels chromatic and larger. */
+@media(max-width:760px){
+  .fluid-pill button:not([data-palette-control]){
+    background:transparent!important;
+    color:var(--accent)!important;
+    font-size:10px;
+    font-weight:700;
+  }
+  .fluid-pill button:not([data-palette-control]):hover{background:transparent!important;color:var(--accent)!important}
+  .player{background:var(--player-bg)!important;color:var(--player-fg)!important}
+}

@@ -240,12 +240,11 @@ function openCinema(v){if(!v)return;state.activeVideo=v.id;state.cinemaOpen=true
 function homepageVideo(){for(const sec of state.sections){const v=sectionVideo(sec.id);if(v)return v}return state.videos[0]||null}
 function cinemaShowcase(){const v=homepageVideo();if(!v)return'';return `<section class="cinema-showcase reveal"><div class="cinema-bg">${videoMedia(v,true)}</div><div class="cinema-shade"></div><div class="cinema-copy"><span>MOVING IMAGE / ARCHIVE SIGNAL</span><h2>${esc(v.title||'STUDIO 333 / CINEMA')}</h2><button data-cinema="${esc(v.id)}">CINEMA MODE ${icon('arrow','icon icon-xs')}</button></div></section>`}
 function home(){
-  const t=active(),hero=state.visualPlan?.hero||null;
+  const hero=state.visualPlan?.hero||null;
   const publicSections=state.sections.filter(sec=>sec.id!=='contact');
   return `<section class="hero">
     ${hero?`<figure class="hero-media"><img src="${esc(hero.media_url)}" alt="${esc(hero.title||'Studio 333 archive')}" fetchpriority="high"><div class="hero-scrim"></div></figure>`:''}
     <div class="hero-title"><div class="micro">SOUND / SPACE / RECORDING / RESEARCH</div><h1><span>STUDIO</span><span>333</span></h1><p>Bartłomiej Kuźniak — recordings, spaces, collaborations and works held in one connected archive.</p></div>
-    <div class="hero-actions"><button data-route="archive">ENTER LISTENING ARCHIVE ${icon('arrow','icon icon-xs')}</button>${t?`<button data-track="${esc(t.id)}">${icon('play','icon icon-xs')} PLAY CURRENT SIGNAL</button>`:''}</div>
     <div class="scroll-cue">SCROLL ↓</div>
   </section>
   <section class="statement reveal"><p>The archive is organised as works, people, spaces and recordings. Media appears where it belongs rather than as decorative filler.</p><div><span>ARCHIVE</span><span>LABORATORY</span><span>LISTENING SPACE</span></div></section>
