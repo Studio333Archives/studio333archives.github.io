@@ -43,7 +43,7 @@ const state={
   catalog:null,sections:[],build:{version:'—'},curation:{hiddenIds:[],featuredTrackIds:[],heroImageIds:[],sectionImageIds:{},sectionVideoIds:{},overrides:{}},
   pages:[],tracks:[],images:[],videos:[],byId:new Map(),out:new Map(),inc:new Map(),pageTrackCount:new Map(),visualPlan:null,
   route:'home',item:null,index:false,playerOpen:false,cinemaOpen:false,activeVideo:null,archiveMode:'grid',query:'',activeTrack:null,playing:false,time:0,duration:0,audioError:'',
-  palette:Number(localStorage.getItem('redroom-palette')||0)%4
+  palette:Number(localStorage.getItem('redroom-palette')||0)%4,collectionId:''
 };
 const audio=new Audio();audio.preload='metadata';audio.setAttribute('playsinline','');
 let smooth=null,observer=null;
@@ -51,6 +51,17 @@ let smooth=null,observer=null;
 async function json(url,fallback){try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(String(r.status));return await r.json()}catch{return fallback}}
 const hidden=id=>state.curation.hiddenIds?.includes(id);
 const over=e=>({...e,...(state.curation.overrides?.[e.id]||{})});
+function relatedPagesForEntity(e){
+  if(!e)return[];if(e.kind==='page')return[e];const owners=new Map(),refs=new Map();
+  for(const r of state.out.get(e.id)||[]){const p=state.byId.get(r.to);if(p?.kind==='page'&&r.type==='parent')owners.set(p.id,p)}
+  if(owners.size)return [...owners.values()];
+  for(const r of state.inc.get(e.id)||[]){const p=state.byId.get(r.from);if(p?.kind==='page')refs.set(p.id,p)}
+  return [...refs.values()];
+}
+function effectivelyHidden(e){
+  if(!e||hidden(e.id))return true;if(e.kind==='page')return false;
+  const rel=relatedPagesForEntity(e);return rel.length>0&&rel.every(p=>hidden(p.id));
+}
 
 function derive(){
   state.byId=new Map(state.catalog.entities.map(e=>[e.id,e]));state.out=new Map();state.inc=new Map();
@@ -61,12 +72,12 @@ function derive(){
   state.pages=state.catalog.entities.filter(e=>e.kind==='page'&&!hidden(e.id)).map(over);
   const imageUrls=new Set();
   state.images=state.catalog.entities.filter(e=>{
-    if(e.media_kind!=='image'||!e.media_url||hidden(e.id))return false;
+    if(e.media_kind!=='image'||!e.media_url||effectivelyHidden(e))return false;
     const key=String(e.media_url).replace(/#.*$/,'');
     if(imageUrls.has(key))return false;
     imageUrls.add(key);return true;
   }).map(over);
-  state.videos=state.catalog.entities.filter(e=>e.media_kind==='video'&&!hidden(e.id)&&(e.embed_url||e.media_url)).map(over);
+  state.videos=state.catalog.entities.filter(e=>e.media_kind==='video'&&!effectivelyHidden(e)&&(e.embed_url||e.media_url)).map(over);
 
   state.pageTrackCount=new Map();
   for(const p of state.pages){
@@ -74,7 +85,7 @@ function derive(){
     state.pageTrackCount.set(p.id,n);
   }
 
-  state.tracks=state.catalog.entities.filter(e=>e.media_kind==='audio'&&e.media_url&&!hidden(e.id)).map(raw=>{
+  state.tracks=state.catalog.entities.filter(e=>e.media_kind==='audio'&&e.media_url&&!effectivelyHidden(e)).map(raw=>{
     const e=over(raw),pages=[],seen=new Set();
     const add=p=>{if(p?.kind==='page'&&!hidden(p.id)&&!seen.has(p.id)){seen.add(p.id);pages.push(over(p))}};
 
@@ -120,7 +131,7 @@ function imagesForPage(page,limit=20){
   if(!page)return[];
   const out=[],seen=new Set();
   const add=m=>{
-    if(m?.media_kind!=='image'||!m.media_url||hidden(m.id))return;
+    if(m?.media_kind!=='image'||!m.media_url||effectivelyHidden(m))return;
     const k=imageKey(m);if(seen.has(k))return;seen.add(k);out.push(over(m));
   };
   add(state.byId.get(page.featured_media_id));
@@ -165,7 +176,7 @@ function semanticImagesForSection(id){
   }));
 }
 function buildVisualPlan(){
-  const selected=(id)=>{const im=state.byId.get(id);return im?.media_kind==='image'&&im.media_url&&!hidden(im.id)?over(im):null};
+  const selected=(id)=>{const im=state.byId.get(id);return im?.media_kind==='image'&&im.media_url&&!effectivelyHidden(im)?over(im):null};
   const explicitHero=(state.curation.heroImageIds||[]).map(selected).filter(Boolean)[0]||null;
   const studioRelated=uniqueImages([...imagesForPage(sectionPage('studio'),60),...sectionImages('studio'),...semanticImagesForSection('studio')]);
   const hero=explicitHero||studioRelated[0]||state.images[0]||null;
@@ -190,21 +201,21 @@ function buildVisualPlan(){
 }
 function sectionCoverImage(id){
   const forced=state.byId.get(state.curation.sectionImageIds?.[id]);
-  if(forced?.media_kind==='image'&&forced.media_url&&!hidden(forced.id))return over(forced);
+  if(forced?.media_kind==='image'&&forced.media_url&&!effectivelyHidden(forced))return over(forced);
   return state.visualPlan?.sectionCovers?.get(id)||null;
 }
 function sectionPage(id){return state.pages.find(p=>p.section_id===id)||state.pages.find(p=>p.slug===id)||null}
 function sectionPages(id){return state.pages.filter(p=>p.section_id===id)}
 function sectionImages(id){const out=[];for(const p of sectionPages(id)){out.push(...imagesForPage(p,60))}return uniqueImages(out).slice(0,60)}
 function videosForPage(page){
-  if(!page)return[];const found=new Map();const add=v=>{if(v?.media_kind==='video'&&!hidden(v.id))found.set(v.id,over(v))};
+  if(!page)return[];const found=new Map();const add=v=>{if(v?.media_kind==='video'&&!effectivelyHidden(v))found.set(v.id,over(v))};
   for(const r of state.out.get(page.id)||[])add(state.byId.get(r.to));
   for(const r of state.inc.get(page.id)||[])if(r.type==='parent')add(state.byId.get(r.from));
   return [...found.values()];
 }
 function sectionVideos(id){const found=new Map();for(const p of sectionPages(id))for(const v of videosForPage(p))found.set(v.id,v);return [...found.values()]}
 function videoPages(video){const out=[],seen=new Set();const add=p=>{if(p?.kind==='page'&&!hidden(p.id)&&!seen.has(p.id)){seen.add(p.id);out.push(over(p))}};for(const r of state.inc.get(video.id)||[])add(state.byId.get(r.from));for(const r of state.out.get(video.id)||[])if(r.type==='parent')add(state.byId.get(r.to));return out}
-function sectionVideo(id){const forced=state.byId.get(state.curation.sectionVideoIds?.[id]);if(forced?.media_kind==='video'&&!hidden(forced.id))return over(forced);return sectionVideos(id)[0]||null}
+function sectionVideo(id){const forced=state.byId.get(state.curation.sectionVideoIds?.[id]);if(forced?.media_kind==='video'&&!effectivelyHidden(forced))return over(forced);return sectionVideos(id)[0]||null}
 function videoSrc(v,background=false){
   if(!v)return'';
   if(v.provider==='youtube'){const id=v.video_id||'';return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(id)}?autoplay=1&mute=${background?1:0}&controls=${background?0:1}&loop=${background?1:0}&playlist=${encodeURIComponent(id)}&playsinline=1&modestbranding=1&rel=0`}
@@ -232,7 +243,14 @@ function videoCover(v){
 function videoArchive(videos,primaryId=null){const rest=(videos||[]).filter(v=>v.id!==primaryId);if(!rest.length)return'';return `<section class="video-archive reveal"><header><span>MOVING IMAGE ARCHIVE</span><strong>${String(rest.length).padStart(2,'0')} MORE</strong></header><div class="video-archive-grid">${rest.map((v,i)=>`<button data-cinema="${esc(v.id)}" class="video-archive-card"><figure>${videoCover(v)}<i>${icon('play')}</i></figure><div><small>${String(i+1).padStart(2,'0')} / ${esc((v.provider||'video').replace('_',' ').toUpperCase())}</small><strong>${esc(v.title||'Moving image')}</strong><em>${esc(videoPages(v)[0]?.title||'Studio 333')}</em></div></button>`).join('')}</div></section>`}
 function heroImages(){return [state.visualPlan?.hero].filter(Boolean)}
 function active(){return state.tracks.find(t=>t.id===state.activeTrack)||state.tracks[0]}
-function filteredTracks(){const q=state.query.trim().toLowerCase();if(!q)return state.tracks;return state.tracks.filter(t=>`${t.title||''} ${(t.pages||[]).map(p=>p.title||'').join(' ')}`.toLowerCase().includes(q))}
+function sectionLandingIds(){const ids=new Set();for(const sec of state.sections){const p=sectionPage(sec.id);if(p)ids.add(p.id)}return ids}
+function collectionType(p){const hay=`${p?.title||''} ${p?.slug||''} ${(p?.terms||[]).map(t=>`${t.taxonomy||''} ${t.name||''}`).join(' ')}`.toLowerCase();if(/\b(album|release|record|ep|lp)\b/.test(hay))return'ALBUM';if(/\b(session|live|concert|performance)\b/.test(hay))return'SESSION';return'PROJECT'}
+function archiveCollections(){
+  const counts=new Map(),pages=new Map(),landing=sectionLandingIds();
+  for(const t of state.tracks)for(const p of t.pages||[]){if(!p?.id||landing.has(p.id)||hidden(p.id))continue;pages.set(p.id,p);counts.set(p.id,(counts.get(p.id)||0)+1)}
+  return [...pages.values()].map(p=>({id:p.id,label:p.title||'Untitled project',count:counts.get(p.id)||0,type:collectionType(p),year:year(p)})).filter(x=>x.count>=2||x.type!=='PROJECT').sort((a,b)=>b.count-a.count||String(a.label).localeCompare(String(b.label)));
+}
+function filteredTracks(){let list=state.tracks;if(state.collectionId)list=list.filter(t=>(t.pages||[]).some(p=>p.id===state.collectionId));const q=state.query.trim().toLowerCase();if(!q)return list;return list.filter(t=>`${t.title||''} ${(t.pages||[]).map(p=>`${p.title||''} ${(p.terms||[]).map(x=>x.name||'').join(' ')}`).join(' ')}`.toLowerCase().includes(q))}
 function year(x){return x?.date?.slice(0,4)||'—'}
 
 function readRoute(){const raw=location.hash.replace(/^#\/?/,'');if(!raw){state.route='home';state.item=null;return}const [r,...rest]=raw.split('/');state.route=r||'home';state.item=rest.length?decodeURIComponent(rest.join('/')):null}
@@ -266,10 +284,11 @@ function shell(){
   document.body.innerHTML=`<div class="site">
     <header class="mast"><button class="logo" data-route="home"><strong>333</strong><small>v${esc(state.build.version||'—')}</small></button><div class="mast-copy"><span>STUDIO 333</span><span>BARTŁOMIEJ KUŹNIAK</span></div></header>
     <main id="view"></main>
-    ${floatingNav()}${indexOverlay()}${player()}${cinemaOverlay()}
+    ${siteCredit()}${floatingNav()}${indexOverlay()}${player()}${cinemaOverlay()}
   </div>`;
   bind();render();
 }
+function siteCredit(){return `<footer class="site-credit"><a href="https://mojoworks.xyz/" target="_blank" rel="noopener">MADE BY WORKWORK.FUN</a></footer>`}
 function floatingNav(){return `<nav class="fluid-nav"><div class="fluid-pill"><button data-route="home">HOME</button><button data-route="archive">LISTEN</button><button data-index>INDEX</button><button data-palette-control aria-label="Change colour scheme">●</button></div></nav>`}
 function indexOverlay(){return `<aside class="index-overlay"><div class="index-bar"><span>STUDIO 333 / INDEX</span><button data-index aria-label="Close index">CLOSE ${icon('close','icon icon-xs')}</button></div><div class="index-list">${state.sections.map((s,i)=>`<button class="index-line" data-route="section" data-item="${esc(s.id)}"><em>${String(i+1).padStart(2,'0')}</em><strong>${esc(s.label)}</strong><span>${esc(smartTruncate(sectionPage(s.id)?.excerpt||'',130)||'Open archive section')}</span><i class="index-arrow">${icon('upRight','icon')}</i></button>`).join('')}<button class="index-line" data-route="archive"><em>∞</em><strong>Listening archive</strong><span>${state.tracks.length} public recordings</span><i class="index-arrow">${icon('upRight','icon')}</i></button></div><footer class="index-footer"><span>REDROOM v${esc(state.build.version||'—')}</span><a href="https://red.studio333.art/editor/">EDITOR ↗</a></footer></aside>`}
 function player(){const t=active(),sub=state.audioError||t?.pages?.[0]?.title||'STUDIO 333 ARCHIVE';return `<footer class="player ${state.audioError?'has-error':''}"><button class="p-thumb" data-player aria-label="Open queue">${t?.art?`<img src="${esc(t.art.media_url)}" alt="">`:'<span>333</span>'}</button><button class="p-toggle icon-button" data-toggle aria-label="${state.playing?'Pause':'Play'}">${icon(state.playing?'pause':'play')}</button><div class="p-info"><button class="p-title" data-player><strong>${esc(t?.title||'LISTENING SPACE')}</strong><span>${esc(sub)}</span></button><time class="p-time">${fmt(state.time)} / ${fmt(state.duration)}</time><label class="p-seek-wrap" aria-label="Seek through track"><span class="p-seek-rail"><span class="p-seek-fill"></span></span><input class="p-seek" aria-label="Seek" type="range" min="0" max="${state.duration||1}" step="0.1" value="${Math.min(state.time,state.duration||0)}"></label></div><button class="p-prev icon-button" data-prev aria-label="Previous track">${icon('prev')}</button><button class="p-next icon-button" data-next aria-label="Next track">${icon('next')}</button><button class="p-queue icon-button" data-player aria-label="${state.playerOpen?'Close queue':'Open queue'}">${icon(state.playerOpen?'down':'up')}</button></footer><aside class="player-drawer ${state.playerOpen?'open':''}">${playerDrawer()}</aside>`}
@@ -297,7 +316,11 @@ function sectionChapter(sec,i){
   return `<article class="section-chapter ${im?'has-media':'no-media'} reveal"><button data-route="section" data-item="${esc(sec.id)}">${im?`<figure><img src="${esc(im.media_url)}" alt="${esc(im.title||sec.label)}" loading="lazy"></figure>`:''}<div class="chapter-meta"><span>${String(i+1).padStart(2,'0')} / ${esc(sec.label)}</span><em>${String(count).padStart(2,'0')} IMAGES</em></div><div class="chapter-title"><h2>${esc(sec.label)}</h2><p>${esc(smartTruncate(p?.excerpt||'',220)||'Enter section')}</p>${icon('arrow')}</div></button></article>`;
 }
 
-function archive(){const list=filteredTracks(),grid=state.archiveMode==='grid';return `<section class="archive-page"><header class="archive-hero reveal"><div><span>LISTENING ARCHIVE</span><h1>${String(list.length).padStart(3,'0')}<br>RECORDINGS</h1></div><p>Search, listen and move through the public selection. Playback stays alive while you enter works and sections.</p></header><div class="archive-toolbar"><input id="track-search" placeholder="SEARCH TITLE / PROJECT" value="${esc(state.query)}"><div><button data-archive-mode="grid" class="${grid?'on':''}">GRID</button><button data-archive-mode="list" class="${!grid?'on':''}">LIST</button></div></div>${grid?`<div class="audio-grid">${list.map((t,i)=>trackCard(t,i)).join('')}</div>`:`<div class="audio-list">${list.map((t,i)=>trackRow(t,i)).join('')}</div>`}</section>`}
+function archive(){
+  const collections=archiveCollections();if(state.collectionId&&!collections.some(x=>x.id===state.collectionId))state.collectionId='';
+  const list=filteredTracks(),grid=state.archiveMode==='grid',selected=collections.find(x=>x.id===state.collectionId)||null;
+  const options=collections.map(x=>`<option value="${esc(x.id)}" ${state.collectionId===x.id?'selected':''}>${esc(x.type)} — ${esc(x.label)} (${x.count})</option>`).join('');
+  return `<section class="archive-page"><header class="archive-hero reveal"><div><span>LISTENING ARCHIVE</span><h1>${String(list.length).padStart(3,'0')}<br>RECORDINGS</h1></div><p>Search recordings or move through projects, albums and sessions recovered from the archive relationships.</p></header><div class="archive-toolbar"><input id="track-search" placeholder="SEARCH TITLE / PROJECT" value="${esc(state.query)}"><div class="archive-view-toggle"><button data-archive-mode="grid" class="${grid?'on':''}">GRID</button><button data-archive-mode="list" class="${!grid?'on':''}">LIST</button></div></div><div class="archive-collection-bar"><label><span>PROJECT / ALBUM / SESSION</span><select id="collection-filter"><option value="">ALL CONNECTED RECORDINGS (${state.tracks.length})</option>${options}</select></label><em>${selected?`${esc(selected.type)} / ${esc(selected.label)} / ${selected.count} RECORDINGS`:`${collections.length} MULTI-TRACK COLLECTIONS FOUND IN METADATA`}</em></div>${grid?`<div class="audio-grid">${list.map((t,i)=>trackCard(t,i)).join('')}</div>`:`<div class="audio-list">${list.map((t,i)=>trackRow(t,i)).join('')}</div>`}</section>`}
 function trackCard(t,i){return `<button class="audio-card reveal ${t.id===active()?.id?'active':''}" data-track="${esc(t.id)}"><figure>${t.art?`<img src="${esc(t.art.media_url)}" alt="" loading="lazy">`:`<span>333</span>`}<i>${icon(t.id===active()?.id&&state.playing?'pause':'play')}</i></figure><div><small>${String(i+1).padStart(3,'0')} / ${esc(year(t))}</small><strong>${esc(t.title)}</strong><em>${esc(t.pages?.[0]?.title||'Studio 333')}</em></div></button>`}
 function trackRow(t,i){return `<button class="audio-row ${t.id===active()?.id?'active':''}" data-track="${esc(t.id)}"><span>${String(i+1).padStart(3,'0')}</span><strong>${esc(t.title)}</strong><em>${esc(t.pages?.[0]?.title||'Studio 333')}</em><time>${esc(year(t))}</time><i>${icon(t.id===active()?.id&&state.playing?'pause':'play')}</i></button>`}
 
@@ -335,7 +358,7 @@ function bind(){
     if(e.target.closest('[data-player]')){state.playerOpen=!state.playerOpen;render();return}
     const mode=e.target.closest('[data-archive-mode]')?.dataset.archiveMode;if(mode){state.archiveMode=mode;render();return}
   });
-  document.addEventListener('input',e=>{if(e.target.matches('.p-seek'))audio.currentTime=Number(e.target.value);if(e.target.id==='track-search'){state.query=e.target.value;const pos=e.target.selectionStart;render();const n=$('#track-search');n?.focus();n?.setSelectionRange(pos,pos)}});
+  document.addEventListener('input',e=>{if(e.target.matches('.p-seek'))audio.currentTime=Number(e.target.value);if(e.target.id==='track-search'){state.query=e.target.value;const pos=e.target.selectionStart;render();const n=$('#track-search');n?.focus();n?.setSelectionRange(pos,pos)}});document.addEventListener('change',e=>{if(e.target.id==='collection-filter'){state.collectionId=e.target.value||'';render()}});
   addEventListener('hashchange',()=>{readRoute();render()});
   addEventListener('keydown',e=>{if(e.key==='Escape'&&state.cinemaOpen){state.cinemaOpen=false;state.activeVideo=null;renderCinema();return}if(e.key==='Escape'&&state.index){state.index=false;render()}if(e.code==='Space'&&!['INPUT','TEXTAREA'].includes(document.activeElement?.tagName)){e.preventDefault();toggle()}});
 }
@@ -356,5 +379,10 @@ function initSmooth(){
 }
 
 async function loadCuration(){const live=await json('/api/curation',null);if(live)return live;return await json('./data/curation.json',{hiddenIds:[],featuredTrackIds:[],heroImageIds:[],sectionImageIds:{},sectionVideoIds:{},overrides:{}})}
+async function refreshCuration(){
+  const next=await loadCuration();if(!next)return;const before=JSON.stringify(state.curation||{}),after=JSON.stringify(next);if(before===after)return;
+  const previous=state.activeTrack;state.curation=next;derive();if(previous&&!state.tracks.some(t=>t.id===previous)){audio.pause();audio.removeAttribute('src');audio.load();state.time=0;state.duration=0}render();
+}
+addEventListener('focus',()=>{if(state.catalog)refreshCuration()});addEventListener('visibilitychange',()=>{if(!document.hidden&&state.catalog)refreshCuration()});
 
 Promise.all([json('./data/catalog.json',null),json('./data/build-content.json',{}),loadCuration()]).then(([catalog,build,curation])=>{if(!catalog)throw new Error('catalog unavailable');state.catalog=catalog;state.sections=catalog.sections||[];state.build=build||{};state.curation=curation||state.curation;readRoute();derive();shell();mediaSession()}).catch(err=>{document.body.innerHTML=`<main class="fatal"><strong>REDROOM / DATA SIGNAL LOST</strong><span>${esc(String(err))}</span></main>`});

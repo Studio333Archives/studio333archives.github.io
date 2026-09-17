@@ -422,3 +422,25 @@ body[data-palette="3"] .cinema-bar [data-cinema-close]{color:#fff!important}
 }
 .video-archive-card figure .provider-cover{transform:scale(1.012)}
 .video-archive-card figure>span{font:700 clamp(18px,2.2vw,34px) var(--mono);letter-spacing:.08em;color:var(--muted)}
+
+/* v0.7.16 — archive collection filter + project-aware curation + footer credit */
+.site-credit{position:relative;z-index:2;display:flex;justify-content:flex-end;padding:24px var(--pad) 104px;border-top:1px solid var(--line);background:var(--bg);font:8px/1 var(--mono);letter-spacing:.085em;text-transform:uppercase}
+.site-credit a{color:var(--accent);text-decoration:none}
+.site-credit a:hover,.site-credit a:focus-visible{text-decoration:underline;text-underline-offset:4px}
+.archive-collection-bar{display:grid;grid-template-columns:minmax(280px,560px) 1fr;gap:24px;align-items:end;padding:18px 0 20px;border-bottom:1px solid var(--line)}
+.archive-collection-bar label{position:relative;display:grid;gap:7px;max-width:560px}
+.archive-collection-bar label>span{font:8px/1 var(--mono);letter-spacing:.08em;color:var(--muted)}
+.archive-collection-bar select{width:100%;height:44px;padding:0 44px 0 12px;border:1px solid var(--line);border-radius:0;appearance:none;-webkit-appearance:none;background:transparent;color:var(--fg);outline:0;font:10px/1 var(--mono);letter-spacing:.035em;cursor:pointer}
+.archive-collection-bar label::before,.archive-collection-bar label::after{content:"";position:absolute;pointer-events:none}
+.archive-collection-bar label::before{right:0;bottom:0;width:44px;height:44px;border-left:1px solid var(--line)}
+.archive-collection-bar label::after{right:17px;bottom:18px;width:8px;height:8px;border-right:1.5px solid var(--fg);border-bottom:1.5px solid var(--fg);transform:rotate(45deg)}
+.archive-collection-bar select:focus-visible{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.archive-collection-bar em{justify-self:end;align-self:center;max-width:520px;text-align:right;font:8px/1.45 var(--mono);font-style:normal;letter-spacing:.055em;color:var(--muted)}
+.archive-view-toggle{position:absolute!important;left:50%!important;transform:translateX(-50%)!important;display:flex!important;gap:4px!important}
+@media(max-width:760px){
+  .site-credit{justify-content:flex-start;padding:20px 14px calc(var(--mobile-overlay-safe) + 26px)}
+  .archive-collection-bar{grid-template-columns:1fr;gap:10px;padding:14px 0 18px}
+  .archive-collection-bar label{max-width:none}
+  .archive-collection-bar em{justify-self:start;text-align:left}
+  .archive-collection-bar select{font-size:9px}
+}
