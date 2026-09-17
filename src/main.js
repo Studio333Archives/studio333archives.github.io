@@ -49,7 +49,8 @@ const audio=new Audio();audio.preload='metadata';audio.setAttribute('playsinline
 let smooth=null,observer=null;
 
 async function json(url,fallback){try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(String(r.status));return await r.json()}catch{return fallback}}
-const hidden=id=>state.curation.hiddenIds?.includes(id);
+function visibilityIds(value){const e=typeof value==='object'&&value?value:state.byId?.get(value);const id=typeof value==='string'?value:e?.id;return [...new Set([id,...(e?.alias_ids||[])].filter(Boolean))]}
+const hidden=value=>visibilityIds(value).some(id=>state.curation.hiddenIds?.includes(id));
 const over=e=>({...e,...(state.curation.overrides?.[e.id]||{})});
 function rawSectionLandingIds(){
   const ids=new Set(),all=state.catalog?.entities||[];
@@ -80,7 +81,7 @@ function hiddenCollectionPageForEntity(e){
   return false;
 }
 function effectivelyHidden(e){
-  if(!e||hidden(e.id))return true;if(e.kind==='page')return false;
+  if(!e||hidden(e))return true;if(e.kind==='page')return false;
   if(hiddenCollectionPageForEntity(e))return true;
   const rel=relatedPagesForEntity(e);return rel.length>0&&rel.every(p=>hidden(p.id));
 }

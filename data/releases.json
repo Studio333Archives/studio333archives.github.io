@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.19",
+    "date": "2026-09-17",
+    "changes": [
+      "Restored explicit manual editor saving; visibility changes no longer auto-save.",
+      "Canonicalized duplicate audio records by stable title/date identity and preserved legacy IDs as aliases.",
+      "Made hidden-state checks honor canonical audio aliases so previously hidden duplicate attachments cannot leak back into the public archive."
+    ]
+  },
+  {
     "version": "0.7.18",
     "date": "2026-09-17",
     "changes": [
