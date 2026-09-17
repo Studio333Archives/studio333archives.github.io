@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.22",
+    "date": "2026-09-17",
+    "changes": [
+      "Recover Archive.org audio players referenced by legacy pages and attach them to their original sections.",
+      "Preserve complete section copy: large lead, secondary intro, then the remaining original rich text with links and lists.",
+      "Apply full-text rendering to every editorial section without truncating or rewriting the source copy."
+    ]
+  },
+  {
     "version": "0.7.21",
     "date": "2026-09-17",
     "changes": [

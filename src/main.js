@@ -16,13 +16,22 @@ function smartTruncate(value,max){
 function sectionIntroParts(page){
   const full=compactText(page?.text||'');
   const excerpt=compactText(page?.excerpt||'');
-  const leadSource=excerpt||full;
-  const lead=smartTruncate(leadSource,520);
-  const leadPlain=lead.replace(/…$/,'').trim();
+  const lead=page?.intro_lead||smartTruncate(excerpt||full,520);
+  const leadPlain=String(lead||'').replace(/…$/,'').trim();
   let bodySource=full;
   if(full&&leadPlain&&full.toLocaleLowerCase().startsWith(leadPlain.toLocaleLowerCase())) bodySource=full.slice(leadPlain.length).trim();
-  const body=smartTruncate(bodySource,680);
+  const body=page?.intro_body||smartTruncate(bodySource,680);
   return {lead,body};
+}
+function sectionRest(page){
+  if(!page)return'';
+  const override=state.curation.overrides?.[page.id]||{};
+  if(Object.prototype.hasOwnProperty.call(override,'text')){
+    const full=compactText(override.text||'');const intro=sectionIntroParts({...page,...override});
+    let rest=full;for(const piece of [intro.lead,intro.body]){const plain=String(piece||'').replace(/…$/,'').trim();if(plain&&rest.toLocaleLowerCase().startsWith(plain.toLocaleLowerCase()))rest=rest.slice(plain.length).trim()}
+    return rest?`<div class="section-body-rich section-body-plain">${paragraphs(rest)}</div>`:'';
+  }
+  return page.section_rest_html?`<div class="section-body-rich">${page.section_rest_html}</div>`:'';
 }
 const icon=(name,cls='icon')=>{
   const paths={
@@ -41,7 +50,7 @@ const icon=(name,cls='icon')=>{
 
 const state={
   catalog:null,sections:[],build:{version:'—'},releases:[],curation:{hiddenIds:[],featuredTrackIds:[],heroImageIds:[],sectionImageIds:{},sectionVideoIds:{},overrides:{}},
-  pages:[],tracks:[],images:[],videos:[],byId:new Map(),out:new Map(),inc:new Map(),pageTrackCount:new Map(),visualPlan:null,
+  pages:[],tracks:[],images:[],videos:[],embeds:[],byId:new Map(),out:new Map(),inc:new Map(),pageTrackCount:new Map(),visualPlan:null,
   route:'home',item:null,index:false,playerOpen:false,cinemaOpen:false,buildInfoOpen:false,activeVideo:null,archiveMode:'grid',query:'',activeTrack:null,playing:false,time:0,duration:0,audioError:'',
   palette:Number(localStorage.getItem('redroom-palette')||0)%4,collectionId:''
 };
@@ -101,6 +110,7 @@ function derive(){
     imageUrls.add(key);return true;
   }).map(over);
   state.videos=state.catalog.entities.filter(e=>e.media_kind==='video'&&!effectivelyHidden(e)&&(e.embed_url||e.media_url)).map(over);
+  state.embeds=state.catalog.entities.filter(e=>e.media_kind==='embed'&&!effectivelyHidden(e)&&e.embed_url).map(over);
 
   state.pageTrackCount=new Map();
   for(const p of state.pages){
@@ -237,6 +247,16 @@ function videosForPage(page){
   return [...found.values()];
 }
 function sectionVideos(id){const found=new Map();for(const p of sectionPages(id))for(const v of videosForPage(p))found.set(v.id,v);return [...found.values()]}
+function embedsForPage(page){
+  if(!page)return[];const found=new Map();const add=e=>{if(e?.media_kind==='embed'&&!effectivelyHidden(e))found.set(e.id,over(e))};
+  for(const r of state.out.get(page.id)||[])if(r.type==='references_embed')add(state.byId.get(r.to));
+  return [...found.values()];
+}
+function sectionEmbeds(id){const found=new Map();for(const p of sectionPages(id))for(const e of embedsForPage(p))found.set(e.id,e);return [...found.values()]}
+function archiveEmbedBlock(items,label='ARCHIVE.ORG / LISTENING OBJECT'){
+  if(!items?.length)return'';
+  return `<section class="archive-embed-stack reveal"><header><span>${esc(label)}</span><strong>${items.length===1?'1 EMBED':`${items.length} EMBEDS`}</strong></header>${items.map(e=>`<article class="archive-embed"><div class="archive-embed-frame"><iframe src="${esc(e.embed_url)}" title="${esc(e.title||'Archive.org player')}" loading="lazy" allow="autoplay" allowfullscreen></iframe></div><div class="archive-embed-meta"><div><small>ARCHIVE.ORG</small><strong>${esc(e.title||e.archive_id||'Listening object')}</strong>${e.archive_file?`<em>${esc(e.archive_file)}</em>`:''}</div><a href="${esc(e.source_url||e.embed_url)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ${icon('upRight','icon icon-xs')}</a></div></article>`).join('')}</section>`
+}
 function videoPages(video){const out=[],seen=new Set();const add=p=>{if(p?.kind==='page'&&!hidden(p.id)&&!seen.has(p.id)){seen.add(p.id);out.push(over(p))}};for(const r of state.inc.get(video.id)||[])add(state.byId.get(r.from));for(const r of state.out.get(video.id)||[])if(r.type==='parent')add(state.byId.get(r.to));return out}
 function sectionVideo(id){const forced=state.byId.get(state.curation.sectionVideoIds?.[id]);if(forced?.media_kind==='video'&&!effectivelyHidden(forced))return over(forced);return sectionVideos(id)[0]||null}
 function videoSrc(v,background=false){
@@ -367,13 +387,13 @@ function trackRow(t,i){return `<button class="audio-row ${t.id===active()?.id?'a
 
 function cinemaBlock(v,label='CINEMA'){if(!v)return'';return `<section class="section-cinema reveal"><div class="section-cinema-media">${videoMedia(v,true)}</div><div class="section-cinema-scrim"></div><div class="section-cinema-copy"><span>${esc(label)} / ${esc((v.provider||'VIDEO').toUpperCase())}</span><h2>${esc(v.title||'Moving image')}</h2><button data-cinema="${esc(v.id)}">OPEN FULLSCREEN ${icon('arrow','icon icon-xs')}</button></div></section>`}
 function sectionView(id){
-  const sec=state.sections.find(x=>x.id===id)||{label:id};const p=sectionPage(id);const intro=sectionIntroParts(p);const cover=sectionCoverImage(id);const all=sectionImages(id);const coverKey=cover?imageKey(cover):null;const imgs=all.filter(im=>imageKey(im)!==coverKey).slice(0,6);const pages=sectionPages(id).filter(x=>x.id!==p?.id);const tracks=state.tracks.filter(t=>t.pages?.some(x=>x.section_id===id));const vid=sectionVideo(id);const vids=sectionVideos(id);
-  return `<section class="section-page"><header class="section-cover ${cover?'has-media':'no-media'}"><div class="section-kicker">${esc(sec.label)} / ${String(tracks.length).padStart(2,'0')} AUDIO / ${String(all.length).padStart(2,'0')} IMAGES / ${String(vids.length).padStart(2,'0')} VIDEO</div><h1>${esc(sec.label)}</h1>${cover?`<figure><img src="${esc(cover.media_url)}" alt="${esc(cover.title||sec.label)}" fetchpriority="high"></figure>`:''}</header><div class="section-intro reveal"><p>${esc(intro.lead)}</p><span>${esc(intro.body)}</span></div>${cinemaBlock(vid,`${sec.label} / CINEMA`)}${videoArchive(vids,vid?.id)}<div class="section-gallery">${imgs.map((im,i)=>`<figure class="g${i%6} reveal"><img src="${esc(im.media_url)}" alt="${esc(im.title||'')}" loading="lazy"><figcaption>${esc(im.title||'ARCHIVE IMAGE')}</figcaption></figure>`).join('')}</div>${tracks.length?`<section class="section-listen"><header><span>LISTEN</span><strong>${tracks.length} RECORDINGS</strong></header>${tracks.slice(0,24).map((t,i)=>trackRow(t,i)).join('')}</section>`:''}${pages.length?`<section class="related-grid"><header>RELATED OBJECTS</header>${pages.slice(0,12).map((x,i)=>{const im=imageForPage(x);return `<button data-route="item" data-item="${esc(x.id)}">${im?`<img src="${esc(im.media_url)}" alt="" loading="lazy">`:''}<span>${String(i+1).padStart(2,'0')}</span><strong>${esc(x.title)}</strong><em>${esc(smartTruncate(x.excerpt||'',120))}</em></button>`}).join('')}</section>`:''}</section>`;
+  const sec=state.sections.find(x=>x.id===id)||{label:id};const p=sectionPage(id);const intro=sectionIntroParts(p);const cover=sectionCoverImage(id);const all=sectionImages(id);const coverKey=cover?imageKey(cover):null;const imgs=all.filter(im=>imageKey(im)!==coverKey).slice(0,6);const pages=sectionPages(id).filter(x=>x.id!==p?.id);const tracks=state.tracks.filter(t=>t.pages?.some(x=>x.section_id===id));const vid=sectionVideo(id);const vids=sectionVideos(id);const embeds=sectionEmbeds(id);
+  return `<section class="section-page"><header class="section-cover ${cover?'has-media':'no-media'}"><div class="section-kicker">${esc(sec.label)} / ${String(tracks.length).padStart(2,'0')} AUDIO / ${String(all.length).padStart(2,'0')} IMAGES / ${String(vids.length).padStart(2,'0')} VIDEO</div><h1>${esc(sec.label)}</h1>${cover?`<figure><img src="${esc(cover.media_url)}" alt="${esc(cover.title||sec.label)}" fetchpriority="high"></figure>`:''}</header><div class="section-intro reveal"><p>${esc(intro.lead)}</p><span>${esc(intro.body)}</span></div>${sectionRest(p)}${archiveEmbedBlock(embeds,`${sec.label} / ARCHIVE.ORG`)}${cinemaBlock(vid,`${sec.label} / CINEMA`)}${videoArchive(vids,vid?.id)}<div class="section-gallery">${imgs.map((im,i)=>`<figure class="g${i%6} reveal"><img src="${esc(im.media_url)}" alt="${esc(im.title||'')}" loading="lazy"><figcaption>${esc(im.title||'ARCHIVE IMAGE')}</figcaption></figure>`).join('')}</div>${tracks.length?`<section class="section-listen"><header><span>LISTEN</span><strong>${tracks.length} RECORDINGS</strong></header>${tracks.slice(0,24).map((t,i)=>trackRow(t,i)).join('')}</section>`:''}${pages.length?`<section class="related-grid"><header>RELATED OBJECTS</header>${pages.slice(0,12).map((x,i)=>{const im=imageForPage(x);return `<button data-route="item" data-item="${esc(x.id)}">${im?`<img src="${esc(im.media_url)}" alt="" loading="lazy">`:''}<span>${String(i+1).padStart(2,'0')}</span><strong>${esc(x.title)}</strong><em>${esc(smartTruncate(x.excerpt||'',120))}</em></button>`}).join('')}</section>`:''}</section>`;
 }
 
 function itemView(id){
-  const p=state.pages.find(x=>x.id===id);if(!p)return sectionView('archives');const imgs=uniqueImages(imagesForPage(p,24)).slice(0,10);const tracks=state.tracks.filter(t=>t.pages?.some(x=>x.id===p.id));const vids=videosForPage(p);
-  return `<section class="object-page"><header class="object-head"><button data-route="home">← HOME</button><span>${esc(year(p))} / ARCHIVE OBJECT</span><h1>${esc(p.title)}</h1></header>${imgs[0]?`<figure class="object-hero"><img src="${esc(imgs[0].media_url)}" alt="${esc(imgs[0].title||'')}" fetchpriority="high"></figure>`:''}<div class="object-copy reveal">${paragraphs(p.text||p.excerpt||'')}</div>${cinemaBlock(vids[0],`${p.title} / CINEMA`)}${videoArchive(vids,vids[0]?.id)}<div class="object-gallery">${imgs.slice(1,14).map((im,i)=>`<figure class="o${i%5} reveal"><img src="${esc(im.media_url)}" alt="${esc(im.title||'')}" loading="lazy"><figcaption>${esc(im.title||'')}</figcaption></figure>`).join('')}</div>${tracks.length?`<section class="object-audio"><header>LISTENING OBJECTS</header>${tracks.map((t,i)=>trackRow(t,i)).join('')}</section>`:''}</section>`;
+  const p=state.pages.find(x=>x.id===id);if(!p)return sectionView('archives');const imgs=uniqueImages(imagesForPage(p,24)).slice(0,10);const tracks=state.tracks.filter(t=>t.pages?.some(x=>x.id===p.id));const vids=videosForPage(p);const embeds=embedsForPage(p);
+  return `<section class="object-page"><header class="object-head"><button data-route="home">← HOME</button><span>${esc(year(p))} / ARCHIVE OBJECT</span><h1>${esc(p.title)}</h1></header>${imgs[0]?`<figure class="object-hero"><img src="${esc(imgs[0].media_url)}" alt="${esc(imgs[0].title||'')}" fetchpriority="high"></figure>`:''}<div class="object-copy reveal">${paragraphs(p.text||p.excerpt||'')}</div>${archiveEmbedBlock(embeds,`${p.title} / ARCHIVE.ORG`)}${cinemaBlock(vids[0],`${p.title} / CINEMA`)}${videoArchive(vids,vids[0]?.id)}<div class="object-gallery">${imgs.slice(1,14).map((im,i)=>`<figure class="o${i%5} reveal"><img src="${esc(im.media_url)}" alt="${esc(im.title||'')}" loading="lazy"><figcaption>${esc(im.title||'')}</figcaption></figure>`).join('')}</div>${tracks.length?`<section class="object-audio"><header>LISTENING OBJECTS</header>${tracks.map((t,i)=>trackRow(t,i)).join('')}</section>`:''}</section>`;
 }
 
 function paragraphs(text){return String(text||'').split(/\n\s*\n/).filter(Boolean).slice(0,12).map(x=>`<p>${esc(x)}</p>`).join('')}
