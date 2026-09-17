@@ -377,3 +377,19 @@ body[data-palette="3"]{--player-fg:#fff}
   .fluid-pill button:not([data-palette-control]):hover{background:transparent!important;color:var(--accent)!important}
   .player{background:var(--player-bg)!important;color:var(--player-fg)!important}
 }
+
+/* v0.7.11 — recovered moving-image archive */
+.video-archive{padding:8vh var(--pad) 10vh;border-top:1px solid var(--line)}
+.video-archive>header{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin-bottom:22px;font:9px var(--mono);letter-spacing:.08em}
+.video-archive-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.video-archive-card{display:block;padding:0;border:0;background:transparent;text-align:left;color:inherit}
+.video-archive-card figure{position:relative;margin:0;aspect-ratio:16/9;overflow:hidden;background:var(--panel)}
+.video-archive-card figure img{width:100%;height:100%;object-fit:cover;transition:transform .55s var(--ease),filter .55s var(--ease)}
+.video-archive-card figure>span{width:100%;height:100%;display:grid;place-items:center;font-size:clamp(38px,7vw,92px);font-weight:700;letter-spacing:-.08em}
+.video-archive-card figure i{position:absolute;left:12px;bottom:12px;width:46px;height:46px;display:grid;place-items:center;border-radius:999px;background:var(--fg);color:var(--bg);font-style:normal}
+.video-archive-card figure i .icon{width:19px;height:19px}
+.video-archive-card>div{padding:11px 2px 24px}
+.video-archive-card small,.video-archive-card em{display:block;font:8px var(--mono);font-style:normal;color:var(--muted);letter-spacing:.05em}
+.video-archive-card strong{display:block;margin:8px 0 5px;font-size:18px;font-weight:500;line-height:1.05;letter-spacing:-.025em}
+.video-archive-card:hover figure img{transform:scale(1.025);filter:contrast(1.04)}
+@media(max-width:760px){.video-archive{padding:7vh 14px calc(10vh + var(--mobile-overlay-safe))}.video-archive-grid{grid-template-columns:1fr}.video-archive-card strong{font-size:20px}.video-archive-card figure i{width:48px;height:48px}}
