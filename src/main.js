@@ -52,9 +52,11 @@ const state={
   catalog:null,sections:[],build:{version:'—'},releases:[],curation:{hiddenIds:[],featuredTrackIds:[],heroImageIds:[],sectionImageIds:{},sectionVideoIds:{},overrides:{}},
   pages:[],tracks:[],images:[],videos:[],embeds:[],byId:new Map(),out:new Map(),inc:new Map(),pageTrackCount:new Map(),visualPlan:null,
   route:'home',item:null,index:false,playerOpen:false,cinemaOpen:false,buildInfoOpen:false,activeVideo:null,archiveMode:'grid',query:'',activeTrack:null,playing:false,time:0,duration:0,audioError:'',
+  archiveAudioId:null,archiveAudioPlaying:false,archiveAudioTime:0,archiveAudioDuration:0,archiveAudioError:'',
   palette:Number(localStorage.getItem('redroom-palette')||0)%4,collectionId:''
 };
 const audio=new Audio();audio.preload='metadata';audio.setAttribute('playsinline','');
+const archiveAudio=new Audio();archiveAudio.preload='metadata';archiveAudio.setAttribute('playsinline','');
 let smooth=null,observer=null;
 
 async function json(url,fallback){try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(String(r.status));return await r.json()}catch{return fallback}}
@@ -253,10 +255,32 @@ function embedsForPage(page){
   return [...found.values()];
 }
 function sectionEmbeds(id){const found=new Map();for(const p of sectionPages(id))for(const e of embedsForPage(p))found.set(e.id,e);return [...found.values()]}
+function archiveAudioSource(e){return e?.audio_url||''}
 function archiveEmbedBlock(items,label='ARCHIVE.ORG / LISTENING OBJECT'){
   if(!items?.length)return'';
-  return `<section class="archive-embed-stack reveal"><header><span>${esc(label)}</span><strong>${items.length===1?'1 EMBED':`${items.length} EMBEDS`}</strong></header>${items.map(e=>`<article class="archive-embed"><div class="archive-embed-frame"><iframe src="${esc(e.embed_url)}" title="${esc(e.title||'Archive.org player')}" loading="lazy" allow="autoplay" allowfullscreen></iframe></div><div class="archive-embed-meta"><div><small>ARCHIVE.ORG</small><strong>${esc(e.title||e.archive_id||'Listening object')}</strong>${e.archive_file?`<em>${esc(e.archive_file)}</em>`:''}</div><a href="${esc(e.source_url||e.embed_url)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ${icon('upRight','icon icon-xs')}</a></div></article>`).join('')}</section>`
+  return `<section class="archive-embed-stack reveal"><header><span>${esc(label)}</span><strong>${items.length===1?'1 LISTENING OBJECT':`${items.length} LISTENING OBJECTS`}</strong></header><div class="archive-listening-grid">${items.map(e=>{
+    const playable=!!archiveAudioSource(e),cover=e.cover_url?`<img src="${esc(e.cover_url)}" alt="" loading="lazy">`:'<span>333</span>';
+    return `<article class="archive-listening-card" data-archive-card="${esc(e.id)}"><figure class="archive-listening-cover">${cover}</figure><div class="archive-listening-copy"><small>ARCHIVE.ORG / ${esc(e.archive_id||'OPEN ARCHIVE')}</small><strong>${esc(e.title||e.archive_file||'Listening object')}</strong>${e.archive_file?`<em>${esc(e.archive_file)}</em>`:''}</div>${playable?`<button class="archive-listening-toggle" data-archive-play="${esc(e.id)}" aria-label="Play Archive.org recording">${icon('play')}</button><div class="archive-listening-progress"><input type="range" min="0" max="1" step="0.1" value="0" data-archive-seek="${esc(e.id)}" aria-label="Seek Archive.org recording"><time data-archive-time>0:00 / 0:00</time></div>`:`<div class="archive-listening-unavailable">SOURCE PLAYER</div>`}<a class="archive-listening-source" href="${esc(e.source_url||e.embed_url)}" target="_blank" rel="noopener noreferrer">OPEN SOURCE ${icon('upRight','icon icon-xs')}</a></article>`
+  }).join('')}</div></section>`
 }
+function archiveEntity(id){return state.embeds.find(e=>e.id===id)||null}
+function toggleArchiveAudio(e){
+  if(!e)return;const src=archiveAudioSource(e);if(!src){if(e.source_url)window.open(e.source_url,'_blank','noopener');return}
+  const href=new URL(src,location.origin).href;
+  if(state.archiveAudioId!==e.id||archiveAudio.src!==href){archiveAudio.pause();archiveAudio.src=href;archiveAudio.load();state.archiveAudioId=e.id;state.archiveAudioTime=0;state.archiveAudioDuration=0;state.archiveAudioError=''}
+  if(!audio.paused)audio.pause();
+  if(archiveAudio.paused){const promise=archiveAudio.play();if(promise?.catch)promise.catch(err=>{state.archiveAudioPlaying=false;state.archiveAudioError=err?.name||'media error';renderArchivePlayers()})}else archiveAudio.pause();
+  renderArchivePlayers();
+}
+function renderArchivePlayers(){
+  $$('.archive-listening-card').forEach(card=>{const id=card.dataset.archiveCard,active=id===state.archiveAudioId;card.classList.toggle('active',active&&state.archiveAudioPlaying);const b=$('[data-archive-play]',card);if(b){b.innerHTML=icon(active&&state.archiveAudioPlaying?'pause':'play');b.setAttribute('aria-label',active&&state.archiveAudioPlaying?'Pause Archive.org recording':'Play Archive.org recording')}const seek=$('[data-archive-seek]',card);if(seek){seek.max=active&&state.archiveAudioDuration?state.archiveAudioDuration:1;seek.value=active?Math.min(state.archiveAudioTime,state.archiveAudioDuration||0):0}const time=$('[data-archive-time]',card);if(time)time.textContent=active?`${fmt(state.archiveAudioTime)} / ${fmt(state.archiveAudioDuration)}`:'0:00 / 0:00'})
+}
+archiveAudio.addEventListener('play',()=>{state.archiveAudioPlaying=true;state.archiveAudioError='';renderArchivePlayers()});
+archiveAudio.addEventListener('pause',()=>{state.archiveAudioPlaying=false;renderArchivePlayers()});
+archiveAudio.addEventListener('timeupdate',()=>{state.archiveAudioTime=archiveAudio.currentTime||0;state.archiveAudioDuration=archiveAudio.duration||0;renderArchivePlayers()});
+archiveAudio.addEventListener('loadedmetadata',()=>{state.archiveAudioDuration=archiveAudio.duration||0;renderArchivePlayers()});
+archiveAudio.addEventListener('ended',()=>{state.archiveAudioPlaying=false;state.archiveAudioTime=state.archiveAudioDuration||0;renderArchivePlayers()});
+archiveAudio.addEventListener('error',()=>{state.archiveAudioPlaying=false;state.archiveAudioError='media error';renderArchivePlayers()});
 function videoPages(video){const out=[],seen=new Set();const add=p=>{if(p?.kind==='page'&&!hidden(p.id)&&!seen.has(p.id)){seen.add(p.id);out.push(over(p))}};for(const r of state.inc.get(video.id)||[])add(state.byId.get(r.from));for(const r of state.out.get(video.id)||[])if(r.type==='parent')add(state.byId.get(r.to));return out}
 function sectionVideo(id){const forced=state.byId.get(state.curation.sectionVideoIds?.[id]);if(forced?.media_kind==='video'&&!effectivelyHidden(forced))return over(forced);return sectionVideos(id)[0]||null}
 function videoSrc(v,background=false){
@@ -310,6 +334,7 @@ function routeTo(route,item=null){state.route=route;state.item=item;state.index=
 function mediaHref(t){return new URL(t.media_url,location.origin).href}
 function play(t){
   if(!t)return;
+  if(!archiveAudio.paused)archiveAudio.pause();
   state.activeTrack=t.id;state.audioError='';
   const href=mediaHref(t);
   if(audio.src!==href){audio.src=href;audio.load()}
@@ -387,7 +412,7 @@ function trackRow(t,i){return `<button class="audio-row ${t.id===active()?.id?'a
 
 function cinemaBlock(v,label='CINEMA'){if(!v)return'';return `<section class="section-cinema reveal"><div class="section-cinema-media">${videoMedia(v,true)}</div><div class="section-cinema-scrim"></div><div class="section-cinema-copy"><span>${esc(label)} / ${esc((v.provider||'VIDEO').toUpperCase())}</span><h2>${esc(v.title||'Moving image')}</h2><button data-cinema="${esc(v.id)}">OPEN FULLSCREEN ${icon('arrow','icon icon-xs')}</button></div></section>`}
 function sectionView(id){
-  const sec=state.sections.find(x=>x.id===id)||{label:id};const p=sectionPage(id);const intro=sectionIntroParts(p);const cover=sectionCoverImage(id);const all=sectionImages(id);const coverKey=cover?imageKey(cover):null;const imgs=all.filter(im=>imageKey(im)!==coverKey).slice(0,6);const pages=sectionPages(id).filter(x=>x.id!==p?.id);const tracks=state.tracks.filter(t=>t.pages?.some(x=>x.section_id===id));const vid=sectionVideo(id);const vids=sectionVideos(id);const embeds=sectionEmbeds(id);
+  const sec=state.sections.find(x=>x.id===id)||{label:id};const p=sectionPage(id);const intro=sectionIntroParts(p);const cover=sectionCoverImage(id);const all=sectionImages(id);const coverKey=cover?imageKey(cover):null;const imageLimit=id==='artist'?14:6;const imgs=all.filter(im=>imageKey(im)!==coverKey).slice(0,imageLimit);const pages=sectionPages(id).filter(x=>x.id!==p?.id);const tracks=state.tracks.filter(t=>t.pages?.some(x=>x.section_id===id));const vid=sectionVideo(id);const vids=sectionVideos(id);const embeds=sectionEmbeds(id);
   return `<section class="section-page"><header class="section-cover ${cover?'has-media':'no-media'}"><div class="section-kicker">${esc(sec.label)} / ${String(tracks.length).padStart(2,'0')} AUDIO / ${String(all.length).padStart(2,'0')} IMAGES / ${String(vids.length).padStart(2,'0')} VIDEO</div><h1>${esc(sec.label)}</h1>${cover?`<figure><img src="${esc(cover.media_url)}" alt="${esc(cover.title||sec.label)}" fetchpriority="high"></figure>`:''}</header><div class="section-intro reveal"><p>${esc(intro.lead)}</p><span>${esc(intro.body)}</span></div>${sectionRest(p)}${archiveEmbedBlock(embeds,`${sec.label} / ARCHIVE.ORG`)}${cinemaBlock(vid,`${sec.label} / CINEMA`)}${videoArchive(vids,vid?.id)}<div class="section-gallery">${imgs.map((im,i)=>`<figure class="g${i%6} reveal"><img src="${esc(im.media_url)}" alt="${esc(im.title||'')}" loading="lazy"><figcaption>${esc(im.title||'ARCHIVE IMAGE')}</figcaption></figure>`).join('')}</div>${tracks.length?`<section class="section-listen"><header><span>LISTEN</span><strong>${tracks.length} RECORDINGS</strong></header>${tracks.slice(0,24).map((t,i)=>trackRow(t,i)).join('')}</section>`:''}${pages.length?`<section class="related-grid"><header>RELATED OBJECTS</header>${pages.slice(0,12).map((x,i)=>{const im=imageForPage(x);return `<button data-route="item" data-item="${esc(x.id)}">${im?`<img src="${esc(im.media_url)}" alt="" loading="lazy">`:''}<span>${String(i+1).padStart(2,'0')}</span><strong>${esc(x.title)}</strong><em>${esc(smartTruncate(x.excerpt||'',120))}</em></button>`}).join('')}</section>`:''}</section>`;
 }
 
@@ -401,7 +426,7 @@ function paragraphs(text){return String(text||'').split(/\n\s*\n/).filter(Boolea
 function render(){
   const v=$('#view');if(!v)return;
   if(state.route==='home')v.innerHTML=home();else if(state.route==='archive')v.innerHTML=archive();else if(state.route==='images')v.innerHTML=home();else if(state.route==='section')v.innerHTML=sectionView(state.item||state.sections[0]?.id);else if(state.route==='item')v.innerHTML=itemView(state.item);else v.innerHTML=home();
-  $('.index-overlay')?.classList.toggle('open',state.index);document.body.classList.toggle('index-open',state.index);const build=$('.build-info-overlay');build?.classList.toggle('open',state.buildInfoOpen);build?.setAttribute('aria-hidden',state.buildInfoOpen?'false':'true');document.body.classList.toggle('build-info-open',state.buildInfoOpen);renderDrawer();renderPlayer();renderCinema();requestAnimationFrame(enhance);
+  $('.index-overlay')?.classList.toggle('open',state.index);document.body.classList.toggle('index-open',state.index);const build=$('.build-info-overlay');build?.classList.toggle('open',state.buildInfoOpen);build?.setAttribute('aria-hidden',state.buildInfoOpen?'false':'true');document.body.classList.toggle('build-info-open',state.buildInfoOpen);renderDrawer();renderPlayer();renderArchivePlayers();renderCinema();requestAnimationFrame(enhance);
 }
 function renderPlayer(){const f=$('.player');if(!f)return;const t=active();f.classList.toggle('has-error',!!state.audioError);const toggleBtn=$('.p-toggle',f);toggleBtn.innerHTML=icon(state.playing?'pause':'play');toggleBtn.setAttribute('aria-label',state.playing?'Pause':'Play');$('.p-title strong',f).textContent=t?.title||'LISTENING SPACE';$('.p-title span',f).textContent=state.audioError||trackContext(t);const seek=$('.p-seek',f);seek.max=state.duration||1;seek.value=Math.min(state.time,state.duration||0);const ratio=state.duration?clamp(state.time/state.duration,0,1):0;f.style.setProperty('--seek-progress',`${ratio*100}%`);$('time',f).textContent=`${fmt(state.time)} / ${fmt(state.duration)}`;const thumb=$('.p-thumb',f);thumb.innerHTML=t?.art?`<img src="${esc(t.art.media_url)}" alt="">`:'<span>333</span>';const q=$('.p-queue',f);q.innerHTML=icon(state.playerOpen?'down':'up');q.setAttribute('aria-label',state.playerOpen?'Close queue':'Open queue');const drawer=$('.player-drawer');drawer?.classList.toggle('open',state.playerOpen);$$('.queue-row',drawer||document).forEach(row=>row.classList.toggle('active',row.dataset.track===t?.id))}
 
@@ -416,12 +441,13 @@ function bind(){
     if(e.target.closest('button[data-palette-control]')){state.palette=(state.palette+1)%4;localStorage.setItem('redroom-palette',String(state.palette));document.body.dataset.palette=String(state.palette);return}
     const cinemaId=e.target.closest('[data-cinema]')?.dataset.cinema;if(cinemaId){openCinema(state.videos.find(v=>v.id===cinemaId));return}
     if(e.target.closest('[data-cinema-close]')){state.cinemaOpen=false;state.activeVideo=null;renderCinema();return}
+    const archiveId=e.target.closest('[data-archive-play]')?.dataset.archivePlay;if(archiveId){toggleArchiveAudio(archiveEntity(archiveId));return}
     const tid=e.target.closest('[data-track]')?.dataset.track;if(tid){play(state.tracks.find(x=>x.id===tid));return}
     if(e.target.closest('[data-toggle]'))toggle();if(e.target.closest('[data-prev]'))step(-1);if(e.target.closest('[data-next]'))step(1);
     if(e.target.closest('[data-player]')){state.playerOpen=!state.playerOpen;render();return}
     const mode=e.target.closest('[data-archive-mode]')?.dataset.archiveMode;if(mode){state.archiveMode=mode;render();return}
   });
-  document.addEventListener('input',e=>{if(e.target.matches('.p-seek'))audio.currentTime=Number(e.target.value);if(e.target.id==='track-search'||e.target.id==='drawer-track-search'){state.query=e.target.value;const pos=e.target.selectionStart,id=e.target.id;render();const n=$(`#${id}`);n?.focus();n?.setSelectionRange(pos,pos)}});document.addEventListener('change',e=>{if(e.target.id==='collection-filter'||e.target.id==='drawer-collection-filter'){state.collectionId=e.target.value||'';render()}});
+  document.addEventListener('input',e=>{if(e.target.matches('.p-seek'))audio.currentTime=Number(e.target.value);if(e.target.matches('[data-archive-seek]')&&e.target.dataset.archiveSeek===state.archiveAudioId)archiveAudio.currentTime=Number(e.target.value);if(e.target.id==='track-search'||e.target.id==='drawer-track-search'){state.query=e.target.value;const pos=e.target.selectionStart,id=e.target.id;render();const n=$(`#${id}`);n?.focus();n?.setSelectionRange(pos,pos)}});document.addEventListener('change',e=>{if(e.target.id==='collection-filter'||e.target.id==='drawer-collection-filter'){state.collectionId=e.target.value||'';render()}});
   addEventListener('hashchange',()=>{readRoute();render()});
   addEventListener('keydown',e=>{if(e.key==='Escape'&&state.cinemaOpen){state.cinemaOpen=false;state.activeVideo=null;renderCinema();return}if(e.key==='Escape'&&state.buildInfoOpen){state.buildInfoOpen=false;render();return}if(e.key==='Escape'&&state.index){state.index=false;render();return}if(e.code==='Space'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){e.preventDefault();toggle()}});
 }

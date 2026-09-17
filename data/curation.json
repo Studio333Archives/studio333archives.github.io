@@ -29,7 +29,11 @@
     "wp:2742",
     "wp:2743",
     "wp:2859",
-    "wp:2863"
+    "wp:2863",
+    "wp:1165",
+    "wp:2004",
+    "wp:2212",
+    "wp:2576"
   ],
   "featuredTrackIds": [],
   "heroImageIds": [
@@ -39,6 +43,13 @@
     "gallery": "wp:169"
   },
   "sectionVideoIds": {},
-  "overrides": {},
-  "updatedAt": "2026-09-16T23:24:52.961Z"
+  "overrides": {
+    "wp:378": {
+      "excerpt": "High Definition Mastering, Mixing & Immersive Recordings"
+    },
+    "wp:850": {
+      "text": "Africa Brown – Artist / Singer / Performer\n\n\n\nBased out of Chicago, Africa Brown has graced the stage from a very early age, working alongside her famous father, Oscar Brown Jr. Although her stage presence is influenced by her father, Ms. Brown has a unique style all her own. Her voice ranges from childlike to sultry, and her style stays true to the Brown family tradition of dramatically telling the story of each and every song. Available for stage, workshops, theatrical collaborations, and all creative undertakings.\n\nAfrica Brown has established a distinguished career over the past several years, being raised in a showbiz family and years working along side of her famous father, Oscar Brown, Jr. This kid was said to be born in a trunk, due to her parents “Gypsy” lifestyle as a toddler. At the tender age of 7, she was introduced to the stage and theater, appearing in her father’s musical, “In De Beginning.” Her performance won her the acclaimed Joseph Jefferson Award for Best Supporting Actress in a musical 1978, making her the youngest actor to receive the award at the time.\n\nSince her stage debut, she has performed in several other productions that includes the hit musical, “Great Nitty Gritty,” which was featured at the McCormick theater in 1982. Most recently, she and her sister, Maggie Brown, have performed as 2 Brown Sisters, appearing in venues around Chicago. She and Maggie also performed in several noted engagements with her father, in a musical revue entitled “Sounds of The Brown’s” appearing at the The Winter Jazz Fest Chicago, South Shore Jazz Festival, the Ravinia Festival, and the 1996 Chicago Jazz Festival, which was broadcast live internationally. She also had the opportunity to perform with her father on his final stage appearance in April of 2005.\n\nAfter her father passed, she took on the role of co-directing Great Nitty Great in 2006 with much success. She acted in two short indie films and some voice over work. With the support of the Brown family and friends, she continues to perform OBJ tributes and create shows with her musical family. In 2009, worked with Kelan Phil Cohran during his tribute to Sun Ra in Chicago’s Millennium Park\nIn 2011, she launched Sirius Edutainment, a social business, teaching our youth and teens healthy coping skills, while growing up in Chicago. She secured a contract with the City Of Chicago to teach a drama program to seniors using the material of her father.\nIn 2016 Africa went to Europe and recorded with music producer Bartłomiej Kuźniak\n\nIn addition to her singing and performing, she is also a principal performing member of Ayodele Drum and Dance since 2007 under the direction of Tosha “Ayo” Alston, studying African drumming and dance. She works with dynamic choreographers from West Africa and America and has been able to grow as a performer under the guidance of her mentors, she also contributes her talents as a writer and vocalist."
+    }
+  },
+  "updatedAt": "2026-09-17T08:24:58.075Z"
 }

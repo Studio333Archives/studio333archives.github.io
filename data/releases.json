@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.23",
+    "date": "2026-09-17",
+    "changes": [
+      "Replace oversized Archive.org iframes with native Redroom listening cards using direct Archive.org audio when an exact file is referenced.",
+      "Map the legacy studio333.art homepage to Bartłomiej Kuźniak so the complete English/Polish biography is preserved in the Artist section.",
+      "Restore the homepage-linked Bartłomiej Kuźniak image relationships and allow a larger Artist gallery without duplicating slider variants."
+    ]
+  },
+  {
     "version": "0.7.22",
     "date": "2026-09-17",
     "changes": [
