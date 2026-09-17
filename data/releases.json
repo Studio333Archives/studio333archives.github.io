@@ -1,0 +1,53 @@
+[
+  {
+    "version": "0.7.17",
+    "date": "2026-09-17",
+    "changes": [
+      "Added operational rollback to previously deployed archive releases.",
+      "Added a clickable build/version overlay with source, mirror and recent release notes.",
+      "Added project/album/session search and filtering inside the open player queue.",
+      "Pinned the WORKWORK.FUN credit to the viewport instead of the document footer."
+    ]
+  },
+  {
+    "version": "0.7.16",
+    "date": "2026-09-17",
+    "changes": [
+      "Added project, album and session filters derived from archive relationships.",
+      "Made project-level editor visibility suppress owned public media.",
+      "Added the WORKWORK.FUN site credit."
+    ]
+  },
+  {
+    "version": "0.7.15",
+    "date": "2026-09-17",
+    "changes": [
+      "Added provider-backed video covers for Vimeo and other remote moving-image assets.",
+      "Added first-frame motion cover fallback for direct/local video."
+    ]
+  },
+  {
+    "version": "0.7.14",
+    "date": "2026-09-17",
+    "changes": [
+      "Expanded video preview generation to direct external video files.",
+      "Added explicit preview candidate/render/cache/failure reporting and verification."
+    ]
+  },
+  {
+    "version": "0.7.13",
+    "date": "2026-09-17",
+    "changes": [
+      "Added generated slow-motion GIF covers for local video assets.",
+      "Moved Cinema close controls away from embedded provider controls."
+    ]
+  },
+  {
+    "version": "0.7.12",
+    "date": "2026-09-17",
+    "changes": [
+      "Added the same-origin proxy for legacy direct-video URLs and byte-range playback.",
+      "Kept original external video URLs as archive provenance."
+    ]
+  }
+]
