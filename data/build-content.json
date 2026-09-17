@@ -1,11 +1,11 @@
 {
   "schema_version": 2,
-  "version": "0.7.19",
-  "source_exported_at_utc": "2026-09-17T02:40:33+00:00",
-  "generated_at_utc": "2026-09-17T02:40:55.910025+00:00",
+  "version": "0.7.21",
+  "source_exported_at_utc": "2026-09-17T03:06:45+00:00",
+  "generated_at_utc": "2026-09-17T03:07:09.271239+00:00",
   "pages": 27,
   "images": 397,
-  "audio": 92,
+  "audio": 198,
   "video": 38,
-  "relationships": 529
+  "relationships": 412
 }

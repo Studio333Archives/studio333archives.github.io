@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.7.21",
+    "date": "2026-09-17",
+    "changes": [
+      "Fixed Git synchronization after deployment when the audioteka snapshot ends with an extra blank line.",
+      "Kept Git whitespace validation enabled while normalizing the managed audioteka snapshot before staging.",
+      "Kept the authoritative 198-recording audioteka catalogue and private editor credential logging introduced in v0.7.20."
+    ]
+  },
+  {
+    "version": "0.7.20",
+    "date": "2026-09-17",
+    "changes": [
+      "Made play.studio333.art/media/archives/audioteka.txt the authoritative public audio manifest.",
+      "Exposed the manifest as same-origin, range-capable Redroom audio while preserving matched WordPress IDs and metadata.",
+      "Stopped printing the editor password in deployment/server logs and cached transient direct-video preview failures."
+    ]
+  },
+  {
     "version": "0.7.19",
     "date": "2026-09-17",
     "changes": [
