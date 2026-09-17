@@ -214,7 +214,22 @@ function videoSrc(v,background=false){
   return v.embed_url||v.media_url||'';
 }
 function videoMedia(v,background=false){if(!v)return'';const src=videoSrc(v,background);if(['local','direct'].includes(v.provider)){const poster=v.poster_url?` poster="${esc(v.poster_url)}"`:'';return `<video ${background?'autoplay muted loop':''} ${background?'':'controls'} playsinline preload="metadata"${poster} src="${esc(src)}"></video>`}return `<iframe src="${esc(src)}" title="${esc(v.title||'Studio 333 video')}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen loading="lazy"></iframe>`}
-function videoArchive(videos,primaryId=null){const rest=(videos||[]).filter(v=>v.id!==primaryId);if(!rest.length)return'';return `<section class="video-archive reveal"><header><span>MOVING IMAGE ARCHIVE</span><strong>${String(rest.length).padStart(2,'0')} MORE</strong></header><div class="video-archive-grid">${rest.map((v,i)=>`<button data-cinema="${esc(v.id)}" class="video-archive-card"><figure>${v.poster_url?`<img src="${esc(v.poster_url)}" alt="" loading="lazy">`:'<span>VIDEO</span>'}<i>${icon('play')}</i></figure><div><small>${String(i+1).padStart(2,'0')} / ${esc((v.provider||'video').replace('_',' ').toUpperCase())}</small><strong>${esc(v.title||'Moving image')}</strong><em>${esc(videoPages(v)[0]?.title||'Studio 333')}</em></div></button>`).join('')}</div></section>`}
+function providerPreviewSrc(v){
+  if(!v)return'';
+  const id=encodeURIComponent(v.video_id||'');
+  if(v.provider==='vimeo'&&id)return `https://player.vimeo.com/video/${id}?autoplay=0&muted=1&controls=0&title=0&byline=0&portrait=0&dnt=1`;
+  if(v.provider==='youtube_playlist'&&id)return `https://www.youtube-nocookie.com/embed/videoseries?list=${id}&autoplay=0&mute=1&controls=0&playsinline=1&modestbranding=1&rel=0`;
+  return'';
+}
+function videoCover(v){
+  if(!v)return'<span>VIDEO</span>';
+  if(v.poster_url)return `<img src="${esc(v.poster_url)}" alt="" loading="lazy">`;
+  const providerPreview=providerPreviewSrc(v);
+  if(providerPreview)return `<iframe class="provider-cover" src="${esc(providerPreview)}" title="${esc(v.title||'Video preview')}" loading="lazy" tabindex="-1" aria-hidden="true" allow="autoplay; encrypted-media"></iframe>`;
+  if(['local','direct'].includes(v.provider)&&(v.embed_url||v.media_url))return `<video class="motion-cover" src="${esc(videoSrc(v,false))}#t=0.1" muted playsinline preload="metadata" aria-hidden="true"></video>`;
+  return `<span>${esc((v.provider||'video').toUpperCase())}</span>`;
+}
+function videoArchive(videos,primaryId=null){const rest=(videos||[]).filter(v=>v.id!==primaryId);if(!rest.length)return'';return `<section class="video-archive reveal"><header><span>MOVING IMAGE ARCHIVE</span><strong>${String(rest.length).padStart(2,'0')} MORE</strong></header><div class="video-archive-grid">${rest.map((v,i)=>`<button data-cinema="${esc(v.id)}" class="video-archive-card"><figure>${videoCover(v)}<i>${icon('play')}</i></figure><div><small>${String(i+1).padStart(2,'0')} / ${esc((v.provider||'video').replace('_',' ').toUpperCase())}</small><strong>${esc(v.title||'Moving image')}</strong><em>${esc(videoPages(v)[0]?.title||'Studio 333')}</em></div></button>`).join('')}</div></section>`}
 function heroImages(){return [state.visualPlan?.hero].filter(Boolean)}
 function active(){return state.tracks.find(t=>t.id===state.activeTrack)||state.tracks[0]}
 function filteredTracks(){const q=state.query.trim().toLowerCase();if(!q)return state.tracks;return state.tracks.filter(t=>`${t.title||''} ${(t.pages||[]).map(p=>p.title||'').join(' ')}`.toLowerCase().includes(q))}

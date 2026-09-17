@@ -409,3 +409,16 @@ body[data-palette="3"]{--player-fg:#fff}
   .cinema-bar [data-cinema-close]{top:66px;right:18px;min-height:40px;padding:0 13px}
 }
 body[data-palette="3"] .cinema-bar [data-cinema-close]{color:#fff!important}
+
+/* v0.7.15 — remote direct-video preview fallback */
+.video-archive-card figure .motion-cover{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.video-archive-card:hover figure .motion-cover{transform:scale(1.025);filter:contrast(1.04)}
+
+
+/* v0.7.15 — provider-backed moving-image covers */
+.video-archive-card figure .provider-cover,
+.video-archive-card figure .motion-cover{
+  position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover;pointer-events:none;background:#000
+}
+.video-archive-card figure .provider-cover{transform:scale(1.012)}
+.video-archive-card figure>span{font:700 clamp(18px,2.2vw,34px) var(--mono);letter-spacing:.08em;color:var(--muted)}
