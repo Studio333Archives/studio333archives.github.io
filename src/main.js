@@ -51,15 +51,37 @@ let smooth=null,observer=null;
 async function json(url,fallback){try{const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(String(r.status));return await r.json()}catch{return fallback}}
 const hidden=id=>state.curation.hiddenIds?.includes(id);
 const over=e=>({...e,...(state.curation.overrides?.[e.id]||{})});
+function rawSectionLandingIds(){
+  const ids=new Set(),all=state.catalog?.entities||[];
+  for(const sec of state.sections||[]){const p=all.find(x=>x.kind==='page'&&x.section_id===sec.id)||all.find(x=>x.kind==='page'&&x.slug===sec.id);if(p)ids.add(p.id)}
+  return ids;
+}
+function pageAudioRelationCount(pageId){
+  const ids=new Set();
+  for(const r of state.out.get(pageId)||[]){const e=state.byId.get(r.to);if(e?.media_kind==='audio')ids.add(e.id)}
+  for(const r of state.inc.get(pageId)||[]){if(r.type!=='parent')continue;const e=state.byId.get(r.from);if(e?.media_kind==='audio')ids.add(e.id)}
+  return ids.size;
+}
 function relatedPagesForEntity(e){
-  if(!e)return[];if(e.kind==='page')return[e];const owners=new Map(),refs=new Map();
-  for(const r of state.out.get(e.id)||[]){const p=state.byId.get(r.to);if(p?.kind==='page'&&r.type==='parent')owners.set(p.id,p)}
-  if(owners.size)return [...owners.values()];
-  for(const r of state.inc.get(e.id)||[]){const p=state.byId.get(r.from);if(p?.kind==='page')refs.set(p.id,p)}
-  return [...refs.values()];
+  if(!e)return[];if(e.kind==='page')return[e];const found=new Map();
+  for(const r of state.out.get(e.id)||[]){const p=state.byId.get(r.to);if(p?.kind==='page'&&r.type==='parent')found.set(p.id,p)}
+  for(const r of state.inc.get(e.id)||[]){const p=state.byId.get(r.from);if(p?.kind==='page')found.set(p.id,p)}
+  return [...found.values()];
+}
+function hiddenCollectionPageForEntity(e){
+  if(!e||e.kind==='page')return false;const landings=rawSectionLandingIds();
+  for(const p of relatedPagesForEntity(e)){
+    if(!hidden(p.id)||landings.has(p.id))continue;
+    // A hidden multi-recording project/album/session page is a curation owner even
+    // when WordPress attachment-parent metadata happens to point at another page.
+    if(pageAudioRelationCount(p.id)>=2)return true;
+    for(const r of state.out.get(e.id)||[])if(r.type==='parent'&&r.to===p.id)return true;
+  }
+  return false;
 }
 function effectivelyHidden(e){
   if(!e||hidden(e.id))return true;if(e.kind==='page')return false;
+  if(hiddenCollectionPageForEntity(e))return true;
   const rel=relatedPagesForEntity(e);return rel.length>0&&rel.every(p=>hidden(p.id));
 }
 

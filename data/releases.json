@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.18",
+    "date": "2026-09-17",
+    "changes": [
+      "Made editor curation changes auto-save instead of relying on a separate manual save step.",
+      "Made hidden project/collection pages suppress recordings they curate even when WordPress attachment ownership points elsewhere.",
+      "Removed empty/hidden collections immediately from Listening Archive and player-drawer filters."
+    ]
+  },
+  {
     "version": "0.7.17",
     "date": "2026-09-17",
     "changes": [
